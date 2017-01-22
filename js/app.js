@@ -1,3 +1,5 @@
+
+
 (function(){
     var sHost = "nim-rd.nuance.mobi";
     var sPort = 9443;
@@ -145,7 +147,9 @@
                             $("input").attr("placeholder", dataResults.QueryResult.transcription);
                     }
                     console.log(JSON.stringify(dataResults, null, 4));
-                    if (dataResults.QueryResult.final_response){
+                    if (dataResults.QueryResult.final_response && dataResults.QueryResult.result_type!="NinaStartSession"){
+                        $("header").html('<span class="logo" id="button">GIFY</span>');
+                        $("span.logo").on("click", startNLUNLERecording);
                         if(dataResults.QueryResult.results != undefined){
                             $("input").attr("value", dataResults.QueryResult.results[0].literal);
                         }
@@ -183,7 +187,6 @@
 
     function startNLUNRRecording() {
         ui_startNLUNRRecording();
-
         var srEngine = document.getElementById("nlu_nr_sr_engine").value;
         var mode = document.getElementById("nlu_nr_nte_mode").value;
 
@@ -217,7 +220,7 @@
     };
 
 function startNLUNLERecording() {
-    $(".logo#button").text("...");
+    $("header").html("<img style='width:70px; height:70px;' src='loading.gif'>");
 //    p.bind('click', button, stopNLUNLERecording);
     var srEngine = 'MREC';
     var mode = 'Accurate';
@@ -330,20 +333,19 @@ function stopRecording() {
         channel  : channel,
         callback : function(m, e, c) {
                     console.log('subscribe');
-
+            $("p").removeClass('animated');
             console.log(m, e, c);  console.log(m);
             // actionUser = m.avatar;
-            var content = '<p';
+            var content = '<p class="animated fadeInUp';
             // var content;
             if(m.text) {
-                content += ' class="right-align"></i><span class="user">' + m.text.substr(7, m.text.length).replace( /[<>]/ig, '' );
+                content += ' right-align"></i><span class="user">' + m.text.substr(7, m.text.length).replace( /[<>]/ig, '' );
             }
             if(m.gif) {
                 console.log('giphy added...');
-                content += '></i><span><img src="' + m.gif + '">'
+                content += '"></i><span><img src="' + m.gif + '">'
             }
             content += '</i><span></span></p>';
-
             output.innerHTML = content + output.innerHTML; 
         },
     });

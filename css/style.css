@@ -91,6 +91,7 @@ span.logo{
     border-radius: 30px;
     background: linear-gradient(#52EDC7, #5AC8FB);
     width: 175px;
+    cursor: pointer;
 }
 span.logo:after {
     position: absolute;
@@ -111,6 +112,7 @@ span.user{
     border-bottom-right-radius: 0px;
     right: 0px;
     position: relative;
+    max-width: 90%;
 }
 img{
     border-radius: 30px;

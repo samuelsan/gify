@@ -115,6 +115,7 @@ span.user{
 img{
     border-radius: 30px;
     border-bottom-left-radius: 0px;
+    max-width: 90%;
 }
 p.right-align{
     text-align: right;

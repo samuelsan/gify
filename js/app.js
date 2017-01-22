@@ -25,7 +25,19 @@
 
     // The WebSocket
     var socket;
-
+    var dataResults;
+    
+    function parseResult(result){
+        if (result.error){
+            publish($('input').attr("placeholder"));
+        }
+        else{
+            if (result.results != undefined){
+                publish(result.results[0].literal);
+            }
+        }
+    }
+    
     function initWebSocket() {
         console.log('hi');
         socket = new WebSocket("wss://" + sHost + ":" + sPort + "/" + socketPath); // The WebSocket must be secure "wss://"
@@ -47,7 +59,7 @@
                     logSecurity: 'off',
                     appName: 'Gifi',
                     companyName: 'ConUStanleyH',
-                    cloudModelVersion: '1.0.2',
+                    cloudModelVersion: '1.0.4',
                     clientAppVersion: '0.0',
                     agentURL: 'http://ac-srvozrtr01.dev.ninaweb.nuance.com/nuance-nim_team-englishus-WebBotRouter/jbotservice.asmx/TalkAgent',
                     apiVersion: 'LATEST'
@@ -72,23 +84,40 @@
             // }
             // else
             // { // event.data should be text and you can parse it
-                var response = JSON.parse(event.data);
-                console.log(response);
+                dataResults = JSON.parse(event.data);
+                console.log(dataResults);
 
-                if (response.ControlData)
+                if (dataResults.ControlData)
                 {
-                    if (response.ControlData === "beginning-of-speech") {
-                        $('#nlu_nr_srResults').text(JSON.stringify(response, null, 4));
+                    if (dataResults.ControlData === "beginning-of-speech") {
+                        $("input").attr("value", "")
+                        $("input").attr("placeholder", "Listening...");
+                        //$('#nlu_nr_srResults').text(JSON.stringify(response, null, 4));
                     }
-                    else if (response.ControlData === "end-of-speech") {
-                        $('#nlu_nr_srResults').text(JSON.stringify(response, null, 4));
-                        stopNLUNRRecording();
+                    else if (dataResults.ControlData === "end-of-speech") {
+                        //$('#nlu_nr_srResults').text(JSON.stringify(response, null, 4));
+                        stopNLUNLERecording();
                     }
-                    else alert(JSON.stringify(response));
+                    else alert(JSON.stringify(dataResults));
                 }
-                else if (response.QueryResult)
-                {
-                    console.log(JSON.stringify(response, null, 4));
+                else if (dataResults.QueryResult || dataResults.QueryRetry)
+                {   
+                    if (dataResults.QueryRetry){
+                        dataResults.QueryResult = dataResults.QueryRetry;
+                    }
+                    if (dataResults.QueryResult.transcription){
+                            $("input").attr("placeholder", dataResults.QueryResult.transcription);
+                    }
+                    console.log(JSON.stringify(dataResults, null, 4));
+                    if (dataResults.QueryResult.final_response){
+                        if(dataResults.QueryResult.results != undefined){
+                            $("input").attr("value", dataResults.QueryResult.results[0].literal);
+                        }
+                        else{
+                            $('input').attr("value", $('input').attr('placeholder'));
+                        }
+                        parseResult(dataResults.QueryResult);
+                    }
 
             }
         };
@@ -152,6 +181,8 @@
     };
 
 function startNLUNLERecording() {
+    $(".logo#button").text("...");
+//    p.bind('click', button, stopNLUNLERecording);
     var srEngine = 'MREC';
     var mode = 'Accurate';
 
@@ -169,6 +200,8 @@ function startNLUNLERecording() {
 }
 
 function stopNLUNLERecording() {
+    $(".logo#button").text("GIFY");
+    $('button').on('click', startNLUNLERecording);
     stopRecording();
 }
 
@@ -264,30 +297,36 @@ function stopRecording() {
 
             console.log(m, e, c);  console.log(m);
             // actionUser = m.avatar;
-            var content = '<p></i><span>';
+            var content = '<p';
             // var content;
             if(m.text) {
-                content += m.text.replace( /[<>]/ig, '' );
+                content += ' class="right-align"></i><span class="user">' + m.text.substr(7, m.text.length).replace( /[<>]/ig, '' );
             }
             if(m.gif) {
                 console.log('giphy added...');
-                content += '<img src="' + m.gif + '">'
+                content += '></i><span><img src="' + m.gif + '">'
             }
-            content += '</span></p>';
+            content += '</i><span></span></p>';
 
             output.innerHTML = content + output.innerHTML; 
         },
     });
 
     p.bind('click', button, startNLUNLERecording);
-    p.bind('click', button1, stopNLUNLERecording);
+    //p.bind('click', button1, stopNLUNLERecording);
 
 var audioRecorder;
 var shouldStopRecording = true;
 
-    function publish() {
+    $("input").keyup(function(event){
+    if(event.keyCode == 13){
+        publish($("input").val());
+    }
+    });
+    
+    function publish(searchTerm) {
         console.log('publish');
-        var text = '\\giphy ' + input.value;
+        var text = '\\giphy ' + searchTerm;
 
         if(!text) return;
 

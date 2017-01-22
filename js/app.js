@@ -228,7 +228,7 @@ function startNLUNLERecording() {
     socket.send(JSON.stringify({
         command: {
             name: "NinaDoSpeechRecognitionAndNLU",
-            logSecurity: 'off'.value,
+            logSecurity: 'off',
             sr_engine: srEngine,
             sr_engine_parameters: {operating_mode:mode},
             nlu_engine: "NLE"

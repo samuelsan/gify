@@ -1,5 +1,4 @@
-(function() {
-
+(function(){
     var sHost = "nim-rd.nuance.mobi";
     var sPort = 9443;
 
@@ -28,31 +27,30 @@
     var socket;
 
     function initWebSocket() {
-
+        console.log('hi');
         socket = new WebSocket("wss://" + sHost + ":" + sPort + "/" + socketPath); // The WebSocket must be secure "wss://"
         socket.binaryType = "arraybuffer"; // Important for receiving audio
 
-        socket.onopen = function () {
+        socket.onopen = function () {   
             console.log("WebSocket connection opened.");
 
             socket.send(JSON.stringify({
                 connect: {
-                    nmaid: nmaid,
-                    nmaidKey: nmaidKey,
-                    username: username
+                    nmaid: 'Nuance_ConUHack2017_20170119_210049',
+                    nmaidKey: '0d11e9c5b897eefdc7e0aad840bf4316a44ea91f0d76a2b053be294ce95c7439dee8c3a6453cf7db31a12e08555b266d54c2300470e4140a4ea4c8ba285962fd',
+                    username: 'websocket_sample'
                 }
             }));
-            var version = $("#api_version")[0];
             socket.send(JSON.stringify({
                 command: {
                     name: "NinaStartSession",
-                    logSecurity: $('#start-end_logSecurity')[0].value,
-                    appName: appName,
-                    companyName: companyName,
-                    cloudModelVersion: cloudModelVersion,
-                    clientAppVersion: clientAppVersion,
-                    agentURL: defaultAgent,
-                    apiVersion: version.options[version.selectedIndex].value
+                    logSecurity: 'off',
+                    appName: 'Gifi',
+                    companyName: 'ConUStanleyH',
+                    cloudModelVersion: '1.0.2',
+                    clientAppVersion: '0.0',
+                    agentURL: 'http://ac-srvozrtr01.dev.ninaweb.nuance.com/nuance-nim_team-englishus-WebBotRouter/jbotservice.asmx/TalkAgent',
+                    apiVersion: 'LATEST'
                 }
             }));
             currentCommand = "NinaStartSession";
@@ -65,408 +63,43 @@
         };
 
         socket.onmessage = function (event) {
-        console.log("socket RECEIVED:");
+            console.log("socket RECEIVED:");
 
-        if (isOfType("ArrayBuffer", event.data))
-        { // The play audio command will return ArrayBuffer data to be played
-            console.log("ArrayBuffer");
-            audioPlayer.play(event.data);
-        }
-        else
-        { // event.data should be text and you can parse it
-            var response = JSON.parse(event.data);
-            console.log(response);
+            // if (isOfType("ArrayBuffer", event.data))
+            // { // The play audio command will return ArrayBuffer data to be played
+            //     console.log("ArrayBuffer");
+            //     audioPlayer.play(event.data);
+            // }
+            // else
+            // { // event.data should be text and you can parse it
+                var response = JSON.parse(event.data);
+                console.log(response);
 
-            if (response.ControlData)
-            {
-                if (response.ControlData === "beginning-of-speech") {
-                    $('#nlu_nr_srResults').text(JSON.stringify(response, null, 4));
-                }
-                else if (response.ControlData === "end-of-speech") {
-                    $('#nlu_nr_srResults').text(JSON.stringify(response, null, 4));
-                    stopNLUNRRecording();
-                }
-                else alert(JSON.stringify(response));
-            }
-            else if (response.QueryResult)
-            {
-                if (response.QueryResult.result_type === "NinaStartSession") {
-                    ui_sessionHasStarted();
-                    currentCommand = null;
-                }
-                else if (response.QueryResult.result_type === "NinaEndSession") {
-                    ui_sessionHasEnded();
-                    currentCommand = null;
-                    socket.close();
-                    socket = undefined;
-                }
-                else if (response.QueryResult.result_type === "NinaPlayAudioWithBargeIn") {
-                    $('#playaudio_results').text(JSON.stringify(response, null, 4));
-                }
-                else if (response.QueryResult.result_type === "NinaGetLogs") {
-                    for (i in response.QueryResult.results) {
-                        var obj = response.QueryResult.results[i];
-                        ui_gotLog(Object.keys(obj)[0], obj[Object.keys(obj)[0]]);
-                    }
-                    currentCommand = null;
-                }
-                else if ($.inArray(response.QueryResult.result_type, ["NinaDoMREC", "NinaDoNTE", "NinaDoNR"]) >= 0 ) {
-                    $('#sr_results').text(JSON.stringify(response, null, 4));
-                    if (currentCommand == "NinaDoSpeechRecognition_fromAudioFile" && response.QueryResult.final_response) {
-                        ui_stopSRRecording();
-                        currentCommand = null;
-                    }
-                }
-                else if (response.QueryResult.result_type === "NinaDoMRECAndNLU_NR" ||
-                        response.QueryResult.result_type === "NinaDoNTEAndNLU_NR" ||
-                        response.QueryResult.result_type === "NinaDoNRAndNLU_NR" ||
-                        response.QueryResult.result_type === "NinaDoNLU_NR") {
-                    if (response.QueryResult.final_response) {
-                        if (currentCommand == "NinaDoSpeechRecognitionAndNLU_NR_fromAudioFile") {
-                            ui_stopNLUNRRecording();
-                        }
-                        $('#nlu_nr_results').text(JSON.stringify(response, null, 4));
-                        currentCommand = null;
-                    } else {
+                if (response.ControlData)
+                {
+                    if (response.ControlData === "beginning-of-speech") {
                         $('#nlu_nr_srResults').text(JSON.stringify(response, null, 4));
-                    }                }
-                else if (response.QueryResult.result_type === "NinaDoMRECAndNLU_NLE" ||
-                        response.QueryResult.result_type === "NinaDoNTEAndNLU_NLE" ||
-                        response.QueryResult.result_type === "NinaDoNRAndNLU_NLE" ||
-                        response.QueryResult.result_type === "NinaDoNLU_NLE") {
-                    if (response.QueryResult.final_response) {
-                        if (currentCommand == "NinaDoSpeechRecognitionAndNLU_NLE_fromAudioFile") {
-                            ui_stopNLUNLERecording();
-                        }
-                        $('#nlu_nle_results').text(JSON.stringify(response, null, 4));
-                        currentCommand = null;
-                    } else {
-                        $('#nlu_nle_srResults').text(JSON.stringify(response, null, 4));
                     }
-                }
-                else if (response.QueryResult.result_type === "NinaDoDialog_NIW" ||
-                        response.QueryResult.result_type === "NinaDoMRECAndDialog_NIW" ||
-                        response.QueryResult.result_type === "NinaDoNTEAndDialog_NIW" ||
-                        response.QueryResult.result_type === "NinaDoNRAndDialog_NIW") {
-                    if (response.QueryResult.final_response) {
-                        if (currentCommand == "NinaDoSpeechRecognitionAndDialog_NIW_fromAudioFile") {
-                            ui_stopDialogNIWRecording();
-                        }
-                        $('#dialog_niw_dialogResults').text(JSON.stringify(response, null, 4));
-                        currentCommand = null;
-                    } else {
-                        $('#dialog_niw_srResults').text(JSON.stringify(response, null, 4));
+                    else if (response.ControlData === "end-of-speech") {
+                        $('#nlu_nr_srResults').text(JSON.stringify(response, null, 4));
+                        stopNLUNRRecording();
                     }
+                    else alert(JSON.stringify(response));
                 }
-                else if (response.QueryResult.result_type === "NinaDoDialog_NCE" ||
-                        response.QueryResult.result_type === "NinaDoMRECAndDialog_NCE" ||
-                        response.QueryResult.result_type === "NinaDoNTEAndDialog_NCE" ||
-                        response.QueryResult.result_type === "NinaDoNRAndDialog_NCE") {
-                    if (response.QueryResult.final_response) {
-                        if (currentCommand == "NinaDoSpeechRecognitionAndDialog_NCE_fromAudioFile") {
-                            ui_stopDialogNCERecording();
-                        }
-                        $('#dialog_nce_dialogResults').text(JSON.stringify(response, null, 4));
-                        currentCommand = null;
-                    } else {
-                        $('#dialog_nce_srResults').text(JSON.stringify(response, null, 4));
-                    }
-                }
-                // Project Vocabulary responses:
-                else if (response.QueryResult.result_type === "ActivateProjectVocabulary") {
-                    ui_ProjectVocabActivate();
-                    $('#config_results').text(JSON.stringify(response, null, 4));
-                    currentCommand = null;
-                }
-                else if (response.QueryResult.result_type === "DeactivateProjectVocabulary") {
-                    ui_ProjectVocabDeactivate();
-                    $('#config_results').text(JSON.stringify(response, null, 4));
-                    currentCommand = null;
-                }
-                else if (response.QueryResult.result_type === "GetAllProjectVocabularies" ||
-                        response.QueryResult.result_type === "DeleteProjectVocabulary") {
-                    $('#config_results').text(JSON.stringify(response, null, 4));
-                    currentCommand = null;
-                }
-                else if (response.QueryResult.result_type === "UploadProjectVocabulary") {
-                    $('#config_results').text(JSON.stringify(response, null, 4));
-                    //TODO: if status == TRAINED && upload from file, remove file from server!
-                }
-                // Dynamic Vocabulary responses:
-                else if (response.QueryResult.result_type === "ActivateDynamicVocabulary" ||
-                        response.QueryResult.result_type === "DeactivateDynamicVocabulary" ||
-                        response.QueryResult.result_type === "GetAllDynamicVocabularies" ||
-                        response.QueryResult.result_type === "UploadDynamicVocabulary") {
-                    $('#config_results').text(JSON.stringify(response, null, 4));
-                    currentCommand = null;
-                }
-                // Business Logic functions:
-                else if (response.QueryResult.result_type === "NinaDoBusinessLogic"){
-                    $('#kq_result').text(JSON.stringify(response, null, 4));
-                    currentCommand = null;
-                }
-                else if (response.QueryResult.result_type === "NinaBLEStatus"){
-                    $('#kq_status').text(JSON.stringify(response, null, 4));
-                    currentCommand = null;
-                }
-                else if (response.QueryResult.result_type === "NinaUploadBusinessLogic"){
-                    $('#kq_upload_result').text(JSON.stringify(response, null, 4));
-                    currentCommand = null;
-                }
-                else alert(JSON.stringify(response));
-            }
-            else if (response.QueryInfo)
-            {
-                if (response.QueryInfo.result_type === "NinaStartSession") {
-                    if (response.QueryInfo.info.niwAgent)
-                        $('#agent_url')[0].value = response.QueryInfo.info.niwAgent
-                    if (response.QueryInfo.info.companyName)
-                        $('#company_name')[0].value = response.QueryInfo.info.companyName;
-                    if (response.QueryInfo.info.appName)
-                        $('#application_name')[0].value = response.QueryInfo.info.appName;
-                    if (response.QueryInfo.info.grammarVersion)
-                        $('#nes_version')[0].value = response.QueryInfo.info.grammarVersion;
-                }
-            }
-            else if (response.VocalPassword)
-            {
-                $('#vp_results').text(JSON.stringify(response, null, 4));
+                else if (response.QueryResult)
+                {
+                    console.log(JSON.stringify(response, null, 4));
 
-                var vpResponse = response.VocalPassword;
-                // VP session started: don't set current command to null!
-                if (vpResponse.SessionInfo && vpResponse.SessionInfo.SessionId) {
-                    $('#vp_results').text("New session started.");
-                }
-                // VP end session, check, enroll, authenticate: we can set current command to null.
-                else {
-                    if (vpResponse.boolean) { // check user enrollment.
-                        ui_checkedUserEnrollment();
-                    }
-                    currentCommand = null;
-                }
             }
-            else if (response.QueryRetry)
-            {
-                if (response.QueryRetry.result_type === "NinaPlayAudioWithBargeIn") {
-                    $('#playaudio_results').text(JSON.stringify(response, null, 4));
-                    if (audioRecorder != undefined) stopRecording();
-                    if (response.QueryRetry.final_response) {
-                        ui_stopBargeIn();
-                        currentCommand = null;
-                    }
-                }
-                else if ($.inArray(response.QueryRetry.result_type, ["NinaDoMREC", "NinaDoNTE", "NinaDoNR", "NinaDoSpeechRecognition"]) >= 0 ) {
-                    $('#sr_results').text(JSON.stringify(response, null, 4));
-                    if (currentCommand == "NinaDoSpeechRecognition_fromAudioFile") {
-                        ui_stopSRRecording();
-                    }
-                    currentCommand = null;
-                }
-                else if (response.QueryRetry.result_type === "NinaDoDialog_NIW" ||
-                        response.QueryRetry.result_type === "NinaDoMRECAndDialog_NIW" ||
-                        response.QueryRetry.result_type === "NinaDoNTEAndDialog_NIW" ||
-                        response.QueryRetry.result_type === "NinaDoNRAndDialog_NIW" ||
-                        response.QueryRetry.result_type === "NinaDoSpeechRecognitionAndDialog_NIW") {
-                    $('#dialog_niw_dialogResults').text(JSON.stringify(response, null, 4));
-                    if (currentCommand == "NinaDoSpeechRecognitionAndDialog_NIW_fromAudioFile") {
-                        ui_stopDialogNIWRecording();
-                    }
-                    currentCommand = null;
-                }
-                else if (response.QueryRetry.result_type === "NinaDoDialog_NCE" ||
-                        response.QueryRetry.result_type === "NinaDoMRECAndDialog_NCE" ||
-                        response.QueryRetry.result_type === "NinaDoNTEAndDialog_NCE" ||
-                        response.QueryRetry.result_type === "NinaDoNRAndDialog_NCE" ||
-                        response.QueryRetry.result_type === "NinaDoSpeechRecognitionAndDialog_NCE") {
-                    $('#dialog_nce_dialogResults').text(JSON.stringify(response, null, 4));
-                    if (currentCommand == "NinaDoSpeechRecognitionAndDialog_NCE_fromAudioFile") {
-                        ui_stopDialogNCERecording();
-                    }
-                    currentCommand = null;
-                }
-                else if (response.QueryRetry.result_type === "NinaDoNLU_NR" ||
-                        response.QueryRetry.result_type === "NinaDoMRECAndNLU_NR" ||
-                        response.QueryRetry.result_type === "NinaDoNTEAndNLU_NR" ||
-                        response.QueryRetry.result_type === "NinaDoNRAndNLU_NR" ||
-                        response.QueryRetry.result_type === "NinaDoSpeechRecognitionAndNLU_NR") {
-                    $('#nlu_nr_results').text(JSON.stringify(response, null, 4));
-                    if (currentCommand == "NinaDoSpeechRecognitionAndNLU_NR_fromAudioFile") {
-                        ui_stopNLUNRRecording();
-                    }
-                    currentCommand = null;
-                }
-                else if (response.QueryRetry.result_type === "NinaDoNLU_NLE" ||
-                        response.QueryRetry.result_type === "NinaDoMRECAndNLU_NLE" ||
-                        response.QueryRetry.result_type === "NinaDoNTEAndNLU_NLE" ||
-                        response.QueryRetry.result_type === "NinaDoNRAndNLU_NLE" ||
-                        response.QueryRetry.result_type === "NinaDoSpeechRecognitionAndNLU_NLE") {
-                    $('#nlu_nle_results').text(JSON.stringify(response, null, 4));
-                    if (currentCommand == "NinaDoSpeechRecognitionAndNLU_NLE_fromAudioFile") {
-                        ui_stopNLUNLERecording();
-                    }
-                    currentCommand = null;
-                }
-                else if (response.QueryRetry.result_type === "ActivateProjectVocabulary" ||
-                        response.QueryRetry.result_type === "DeleteProjectVocabulary" ||
-                        response.QueryRetry.result_type === "UploadProjectVocabulary" ||
-                        response.QueryRetry.result_type === "ActivateDynamicVocabulary" ||
-                        response.QueryRetry.result_type === "DeactivateDynamicVocabulary" ||
-                        response.QueryRetry.result_type === "UploadDynamicVocabulary") {
-                    $('#config_results').text(JSON.stringify(response, null, 4));
-                    currentCommand = null;
-                }
-                else if ($.inArray(response.QueryRetry.result_type, ["NinaEnrollUser", "NinaVerifyUserEnrollment", "NinaAuthenticateUser"]) >= 0 ) {
-                    $('#vp_results').text(JSON.stringify(response, null, 4));
-                    ui_checkedUserEnrollment(); // re-enable the buttons.
-                    currentCommand = null;
-                }
-                else if (response.QueryRetry.result_type === "NinaDoBusinessLogic"){
-                    $('#kq_result').text(JSON.stringify(response, null, 4));
-                    currentCommand = null;
-                }
-                else if (response.QueryRetry.result_type === "NinaBLEStatus"){
-                    $('#kq_status').text(JSON.stringify(response, null, 4));
-                    currentCommand = null;
-                }
-                else if (response.QueryRetry.result_type === "NinaUploadBusinessLogic"){
-                    $('#kq_upload_result').text(JSON.stringify(response, null, 4));
-                    currentCommand = null;
-                }
-                else alert(JSON.stringify(response));
-            }
-            else if (response.QueryError)
-            {
-                if ($.inArray(response.QueryError.result_type, ["NinaStartSession", "NinaEndSession", "NinaPlayAudio"]) >= 0 ) {
-                    alert(JSON.stringify(response));
-                    currentCommand = null;
-                }
-                else if (response.QueryError.result_type === "NinaPlayAudioWithBargeIn") {
-                    $('#playaudio_results').text(JSON.stringify(response, null, 4));
-                    if (audioRecorder != undefined) stopRecording();
-                    if (response.QueryError.final_response) {
-                        ui_stopBargeIn();
-                        currentCommand = null;
-                    }
-                }
-                else if ($.inArray(response.QueryError.result_type, ["NinaDoMREC", "NinaDoNTE", "NinaDoNR", "NinaDoSpeechRecognition"]) >= 0 ) {
-                    $('#sr_results').text(JSON.stringify(response, null, 4));
-                    if (currentCommand == "NinaDoSpeechRecognition_fromAudioFile") {
-                        ui_stopSRRecording();
-                    }
-                    currentCommand = null;
-                }
-                else if ($.inArray(response.QueryError.result_type, ["ActivateProjectVocabulary", "DeactivateProjectVocabulary", "DeleteProjectVocabulary",
-                        "UploadProjectVocabulary", "GetAllProjectVocabularies", "GetAllDynamicVocabularies", "ActivateDynamicVocabulary",
-                        "DeactivateDynamicVocabulary", "UploadDynamicVocabulary"]) >= 0 ) {
-                    $('#config_results').text(JSON.stringify(response, null, 4));
-                    currentCommand = null;
-                }
-                else if (response.QueryError.result_type === "NinaDoMRECAndNLU_NR" ||
-                        response.QueryError.result_type === "NinaDoNTEAndNLU_NR" ||
-                        response.QueryError.result_type === "NinaDoNRAndNLU_NR" ||
-                        response.QueryError.result_type === "NinaDoNLU_NR" ||
-                        response.QueryError.result_type === "NinaDoSpeechRecognitionAndNLU_NR") {
-                    $('#nlu_nr_results').text(JSON.stringify(response, null, 4));
-                    if (currentCommand == "NinaDoSpeechRecognitionAndNLU_NR_fromAudioFile") {
-                        ui_stopNLUNRRecording();
-                    }
-                    currentCommand = null;
-                }
-                else if (response.QueryError.result_type === "NinaDoMRECAndNLU_NLE" ||
-                        response.QueryError.result_type === "NinaDoNTEAndNLU_NLE" ||
-                        response.QueryError.result_type === "NinaDoNRAndNLU_NLE" ||
-                        response.QueryError.result_type === "NinaDoNLU_NLE" ||
-                        response.QueryError.result_type === "NinaDoSpeechRecognitionAndNLU_NLE") {
-                    $('#nlu_nle_results').text(JSON.stringify(response, null, 4));
-                    if (currentCommand == "NinaDoSpeechRecognitionAndNLU_NLE_fromAudioFile") {
-                        ui_stopNLUNLERecording();
-                    }
-                    currentCommand = null;
-                }
-                else if (response.QueryError.result_type === "NinaDoDialog_NIW" ||
-                        response.QueryError.result_type === "NinaDoMRECAndDialog_NIW" ||
-                        response.QueryError.result_type === "NinaDoNTEAndDialog_NIW" ||
-                        response.QueryError.result_type === "NinaDoNRAndDialog_NIW" ||
-                        response.QueryError.result_type === "NinaDoSpeechRecognitionAndDialog_NIW") {
-                    $('#dialog_niw_dialogResults').text(JSON.stringify(response, null, 4));
-                    if (currentCommand == "NinaDoSpeechRecognitionAndDialog_NIW_fromAudioFile") {
-                        ui_stopDialogNIWRecording();
-                    }
-                    currentCommand = null;
-                }
-                else if (response.QueryError.result_type === "NinaDoDialog_NCE" ||
-                        response.QueryError.result_type === "NinaDoMRECAndDialog_NCE" ||
-                        response.QueryError.result_type === "NinaDoNTEAndDialog_NCE" ||
-                        response.QueryError.result_type === "NinaDoNRAndDialog_NCE" ||
-                        response.QueryError.result_type === "NinaDoSpeechRecognitionAndDialog_NCE") {
-                    $('#dialog_nce_dialogResults').text(JSON.stringify(response, null, 4));
-                    if (currentCommand == "NinaDoSpeechRecognitionAndDialog_NCE_fromAudioFile") {
-                        ui_stopDialogNCERecording();
-                    }
-                    currentCommand = null;
-                }
-                else if ($.inArray(response.QueryError.result_type, ["NinaEnrollUser", "NinaVerifyUserEnrollment", "NinaAuthenticateUser"]) >= 0 ) {
-                    $('#vp_results').text(JSON.stringify(response, null, 4));
-                    ui_checkedUserEnrollment(); // re-enable the buttons.
-                    currentCommand = null;
-                }
-                else if (response.QueryError.result_type === "NinaDoBusinessLogic"){
-                    $('#kq_result').text(JSON.stringify(response, null, 4));
-                    currentCommand = null;
-                }
-                else if (response.QueryError.result_type === "NinaBLEStatus"){
-                    $('#kq_status').text(JSON.stringify(response, null, 4));
-                    currentCommand = null;
-                }
-                else if (response.QueryError.result_type === "NinaUploadBusinessLogic"){
-                    $('#kq_upload_result').text(JSON.stringify(response, null, 4));
-                    currentCommand = null;
-                }
-                else alert(JSON.stringify(response));
-            }
-            else alert(JSON.stringify(response));
-        }
+        };
     };
-};
+
 
     function startSession() {
         ui_startSession();
-
-        // Check parameters of the connection message.
-        var lNmaid = $('#nmaid')[0].value;
-        if (lNmaid.length > 0) {
-            nmaid = lNmaid;
-        }
-        var lNmaidKey = $('#nmaid_key')[0].value;
-        if (lNmaidKey.length > 0) {
-            nmaidKey = lNmaidKey;
-        }
-        var lUsername = $('#username')[0].value;
-        if (lUsername.length > 0) {
-            username = lUsername;
-        }
-        // Check parameters of the start session message.
-        var company_name = $('#company_name')[0].value;
-        if (company_name.length > 0) {
-            companyName = company_name;
-        }
-        var application_name = $('#application_name')[0].value;
-        if (application_name.length > 0) {
-            appName = application_name;
-        }
-        var nes_version = $('#nes_version')[0].value;
-        if (nes_version.length > 0) {
-            cloudModelVersion = nes_version;
-        }
-        clientAppVersion = $('#application_version')[0].value;
-        var agent_url = $("#agent_url")[0].value;
-        if (agent_url.length > 0) {
-            defaultAgent = agent_url;
-        }
-
-        if (socket === undefined) {
-            initWebSocket();
-        }
+        // if (socket === undefined) {
+        //     initWebSocket();
+        // }
     }
 
     function endSession() {
@@ -516,7 +149,78 @@
             record();
         }
 
-    }
+    };
+
+function startNLUNLERecording() {
+    var srEngine = 'MREC';
+    var mode = 'Accurate';
+
+    socket.send(JSON.stringify({
+        command: {
+            name: "NinaDoSpeechRecognitionAndNLU",
+            logSecurity: 'off'.value,
+            sr_engine: srEngine,
+            sr_engine_parameters: {operating_mode:mode},
+            nlu_engine: "NLE"
+        }
+    }));
+    currentCommand = "NinaDoSpeechRecognitionAndNLU_NLE";
+    record();
+}
+
+function stopNLUNLERecording() {
+    stopRecording();
+}
+
+function record() {
+    shouldStopRecording = false;  
+    console.log("Recorder started.");
+
+    // IMPORTANT Make sure you create a new AudioRecorder before you start recording to avoid any bugs !!!
+    audioRecorder = new AudioRecorder(audioContext);
+
+    audioRecorder.start().then(
+
+            // This callback is called when "def.resolve" is called in the AudioRecorder.
+            // def.resolve
+            function () {
+                console.log("Recorder stopped.");
+            },
+
+            // def.reject
+            function () {
+                console.log("Recording failed!!!");
+            },
+
+            // def.notify
+            function (data) { // When the recorder receives audio data
+                console.log("Audio data received...");
+
+                if (shouldStopRecording) {
+                    return;
+                }
+
+                // tuple: [encodedSpx, ampArray]
+                //   resampled audio as Int16Array 
+                //   amplitude data as Uint8Array
+                var frames = data[0]; // Int16Array
+
+                socket.send(frames.buffer);
+            }
+    );
+}
+
+function stopRecording() {
+    shouldStopRecording = true;
+
+    audioRecorder.stop();
+    audioRecorder = undefined;
+
+    socket.send(JSON.stringify({
+        endcommand: {}
+    }));
+}
+    initWebSocket();
 
     var output = PUBNUB.$('output'), 
         input = PUBNUB.$('input'), 
@@ -534,6 +238,7 @@
         channel  : channel,
         count    : 2,
         callback : function(messages) {
+
             p.each( messages[0], function(m){
                 var content = '<p><span>';
                 // var content;
@@ -555,6 +260,8 @@
     p.subscribe({
         channel  : channel,
         callback : function(m, e, c) {
+                    console.log('subscribe');
+
             console.log(m, e, c);  console.log(m);
             // actionUser = m.avatar;
             var content = '<p></i><span>';
@@ -572,9 +279,14 @@
         },
     });
 
-    p.bind('click', button, publish);
+    p.bind('click', button, startNLUNLERecording);
+    p.bind('click', button1, stopNLUNLERecording);
+
+var audioRecorder;
+var shouldStopRecording = true;
 
     function publish() {
+        console.log('publish');
         var text = '\\giphy ' + input.value;
 
         if(!text) return;

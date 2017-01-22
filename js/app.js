@@ -220,8 +220,10 @@
     };
 
 function startNLUNLERecording() {
-    $("header").html("<img style='width:70px; height:70px;' src='loading.gif'>");
+    $("header").html("<img style='width:70px; height:70px; cursor:pointer;' class='loading' src='loading.gif'>");
 //    p.bind('click', button, stopNLUNLERecording);
+    $("img.loading").on("click", stopNLUNLERecording);
+    
     var srEngine = 'MREC';
     var mode = 'Accurate';
 
@@ -239,8 +241,8 @@ function startNLUNLERecording() {
 }
 
 function stopNLUNLERecording() {
-    $(".logo#button").text("GIFY");
-    $('button').on('click', startNLUNLERecording);
+    $("header").html('<span class="logo" id="button">GIFY</span>');
+    $("span.logo").on("click", startNLUNLERecording);
     stopRecording();
 }
 

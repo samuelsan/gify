@@ -33,7 +33,43 @@
         }
         else{
             if (result.results != undefined){
-                publish(result.results[0].literal);
+                var intent = result.results[0].intent;
+                var phrase = result.results[0].literal;
+                var replace;
+                console.log(intent);
+                if(intent == "GENERAL_GREETING"){
+                    replace = 'hello'
+                }
+                if(intent == "JOY"){
+                    replace = 'Thumbs'
+                }
+                if(intent == "SADNESS"){
+                    replace = "Don't Care"
+                }
+                if(intent == "LIFE_EVENT"){
+                    replace = "Cake" 
+                }
+                if(intent == "SURPRISE"){
+                    replace = "I know"
+                }
+                if(intent == "FEAR"){
+                    replace = "Deal with it"
+                }
+                if(intent == "ANGER"){
+                    replace = "Calm down"
+                }
+                if(intent == "HOW_YOU_DOIN"){
+                    replace = "Happy"
+                }
+                if(intent == "LOVE"){
+                    replace = "Love"
+                }
+                if(intent == "SHOW_ITEM"){
+                    replace = phrase.substr(8, phrase.length)
+                }
+                console.log("ICI");
+                console.log(replace);
+                publish(phrase, replace);
             }
         }
     }
@@ -59,7 +95,7 @@
                     logSecurity: 'off',
                     appName: 'Gifi',
                     companyName: 'ConUStanleyH',
-                    cloudModelVersion: '1.0.4',
+                    cloudModelVersion: '1.0.5',
                     clientAppVersion: '0.0',
                     agentURL: 'http://ac-srvozrtr01.dev.ninaweb.nuance.com/nuance-nim_team-englishus-WebBotRouter/jbotservice.asmx/TalkAgent',
                     apiVersion: 'LATEST'
@@ -313,10 +349,9 @@ function stopRecording() {
     });
 
     p.bind('click', button, startNLUNLERecording);
-    //p.bind('click', button1, stopNLUNLERecording);
 
-var audioRecorder;
-var shouldStopRecording = true;
+    var audioRecorder;
+    var shouldStopRecording = true;
 
     $("input").keyup(function(event){
     if(event.keyCode == 13){
@@ -324,18 +359,25 @@ var shouldStopRecording = true;
     }
     });
     
-    function publish(searchTerm) {
+    function publish(searchTerm, replaceTerm) {
+        console.log(replaceTerm);
         console.log('publish');
         var text = '\\giphy ' + searchTerm;
 
         if(!text) return;
-
+        console.log(text);
         p.publish({
             channel : channel, 
-            message : {text: text}, 
+            message : {text: text
+                    }, 
             callback : function(m) {
                 input.value = '';
-                console.log(m);
+                if(replaceTerm) {
+                    text = '\\giphy ' + replaceTerm;
+                    console.log('replace');
+                    console.log(text);
+                    replaceTerm = null;
+                }
                 if (['\giphy'].some(function(v) { return text.toLowerCase().indexOf(v) > 0; })) {
                     var query = text.split(' ').join('+');
                     console.log(query);
